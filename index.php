@@ -10,6 +10,7 @@ $password = 'baivong';
 $useragent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:36.0) Gecko/20100101 Firefox/36.0 Waterfox/36.0';
 $cookiepath = __DIR__ . DIRECTORY_SEPARATOR . 'cookie.txt';
 $urlpath = __DIR__ . DIRECTORY_SEPARATOR . 'url.txt';
+$showlog = true;
 
 // Thông số mặc định
 $count_get = 0;
@@ -72,7 +73,7 @@ function login() {
  * @param $bbcode
  */
 function post($title, $bbcode) {
-	global $cookiepath, $domain, $useragent, $forumid;
+	global $cookiepath, $domain, $useragent, $forumid, $showlog;
 	
 	$topic = array(
 		'mode' => 'newtopic',
@@ -106,9 +107,9 @@ function post($title, $bbcode) {
 	$newtopic_url = $newtopic_url[0] -> getAttribute('href');
 
 	if(substr($newtopic_url, 0, 13) === '/viewtopic?t=') {
-		echo '<p style="color: green">Post success <a target="_blank" href="' . $domain . $newtopic_url . '">' . $newtopic_url . '</a></p>';
+		if($showlog) echo '<p style="color: green">Post success <a target="_blank" href="' . $domain . $newtopic_url . '">' . $newtopic_url . '</a></p>';
 	} else {
-		echo '<p style="color: red">Post error</p>';
+		if($showlog) echo '<p style="color: red">Post error</p>';
 	}
 }
 
@@ -116,29 +117,21 @@ function post($title, $bbcode) {
  * Xử lý khi lấy tin thành công
  */
 function complete() {
-	global $count_get;
-	
-	$count_get = 0;
-
-//	echo '<p style="color: blue">' . date('h:i:s') . '</p>';
-//	sleep(60);
-//	echo '<p style="color: blue">' . date('h:i:s') . '</p>';
-//	get_rss();
+	if($showlog) echo '<p style="color: blue">Complete ' . date('h:i:s') . '</p>';
 }
 
 /**
  * Lấy nội dung tin để đăng bài
  */
-function get_post_entry()
-{
-	global $links, $links_used, $count_get, $urlpath;
+function get_post_entry() {
+	global $links, $links_used, $count_get, $urlpath, $showlog;
 	
 	$link = $links[$count_get];
 	$links_used = explode("\n", file_get_contents($urlpath));
 	
 	if(trim(file_get_contents('url.txt')) === '' || !is_numeric(array_search($link, $links_used))) {	
 	
-		echo '<p style="color: green">' . $count_get . ' | ' . date('h:i:s') . ' | ' . $link . '</p>';
+		if($showlog) echo '<p style="color: green">' . $count_get . ' | ' . date('h:i:s') . ' | ' . $link . '</p>';
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $link);
@@ -159,9 +152,9 @@ function get_post_entry()
 		$content = $dom->saveHTML($content[0]);
 		
 		$bbcode = '[b]' . $excerpt . '[/b]' . "\n\n" . html2bbcode($content);
-		
-		echo '<h2>'.$title.'</h2>';
-		echo '<textarea style="width: 98%; height: 200px;">' . $bbcode . '</textarea>';
+
+		if($showlog) echo '<h2>'.$title.'</h2>';
+		if($showlog) echo '<textarea style="width: 98%; height: 200px;">' . $bbcode . '</textarea>';
 
 		post($title, $bbcode);
 		
@@ -171,8 +164,8 @@ function get_post_entry()
 		file_put_contents($urlpath, implode("\n", $links_used));
 		
 		if($count_get < count($links)) {
-			
-			echo '<p>Waiting...</p>';
+
+			if($showlog) echo '<p>Waiting...</p>';
 			
 			sleep(10);
 			get_post_entry();
@@ -182,8 +175,8 @@ function get_post_entry()
 		}
 	
 	} else {
-		
-		echo '<p style="color: red">' . $count_get . ' | ' . date('h:i:s') . ' | ' . $link . '</p>';
+
+		if($showlog) echo '<p style="color: red">' . $count_get . ' | ' . date('h:i:s') . ' | ' . $link . '</p>';
 		
 		$count_get += 1;
 		
@@ -199,28 +192,24 @@ function get_post_entry()
 /**
  * Tải RSS và lấy link của tin
  */
-function get_rss() {
-	global $links;
 
-	if(login()) {
-		echo '<p style="color: green">Login success</p>';
 
-		$docs = new DOMDocument();
-		$docs->load('http://tintuc.vn/rss/suc-khoe.rss');
+if(login()) {
+	if($showlog) echo '<p style="color: green">Login success</p>';
 
-		$items = $docs->getElementsByTagName('item');
+	$docs = new DOMDocument();
+	$docs->load('http://tintuc.vn/rss/suc-khoe.rss');
 
-		foreach($items as $item) {
-			$link = $item->childNodes[1];
-			array_push($links, trim($link->textContent));
-		}
+	$items = $docs->getElementsByTagName('item');
 
-		echo '<p>RSS loaded</p>';
-
-		get_post_entry();
-	} else {
-		echo '<p style="color: red">Login error</p>';
+	foreach($items as $item) {
+		$link = $item->childNodes[1];
+		array_push($links, trim($link->textContent));
 	}
-}
 
-get_rss();
+	if($showlog) echo '<p>RSS loaded</p>';
+
+	get_post_entry();
+} else {
+	if($showlog) echo '<p style="color: red">Login error</p>';
+}
