@@ -117,6 +117,7 @@ function post($title, $bbcode) {
  * Xử lý khi lấy tin thành công
  */
 function complete() {
+	global $showlog;
 	if($showlog) echo '<p style="color: blue">Complete ' . date('h:i:s') . '</p>';
 }
 
